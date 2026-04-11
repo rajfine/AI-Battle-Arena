@@ -1,15 +1,8 @@
 import React, { useEffect, useState } from 'react'
 
-const JudgeResult = ({ score1, score2, analysis, winnerName }) => {
+const JudgeResult = ({ analysis, winnerName }) => {
     const [visible, setVisible] = useState(false)
     useEffect(() => { const t = setTimeout(() => setVisible(true), 80); return () => clearTimeout(t) }, [])
-
-    if (score1 === undefined || score2 === undefined) return null
-
-    const total = Math.max(score1 + score2, 1)
-    const bar1pct = Math.round((score1 / total) * 100)
-    const bar2pct = Math.round((score2 / total) * 100)
-    const winner = score1 > score2 ? 1 : score2 > score1 ? 2 : 0
 
     // For radar/pentagon chart — simplified as a visual element
     const HexChart = () => (
@@ -48,36 +41,6 @@ const JudgeResult = ({ score1, score2, analysis, winnerName }) => {
 
             {/* Content */}
             <div className="flex gap-6 p-5">
-                {/* Left — metrics */}
-                <div className="flex-1 space-y-4">
-                    {/* Accuracy */}
-                    <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-[9px] font-black tracking-widest text-[#71717a] uppercase">Accuracy</span>
-                            <span className="text-[11px] font-black text-[#c8f135]">{score1}%</span>
-                        </div>
-                        <div className="h-1.5 rounded-full bg-[#1a1a1e] overflow-hidden">
-                            <div
-                                className="h-full rounded-full bg-[#c8f135] animate-bar"
-                                style={{ width: visible ? `${bar1pct}%` : '0%', transition: 'width 1s ease' }}
-                            />
-                        </div>
-                    </div>
-                    {/* Speed */}
-                    <div>
-                        <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-[9px] font-black tracking-widest text-[#71717a] uppercase">Speed</span>
-                            <span className="text-[11px] font-black text-[#7c3aed]">{score2}ms</span>
-                        </div>
-                        <div className="h-1.5 rounded-full bg-[#1a1a1e] overflow-hidden">
-                            <div
-                                className="h-full rounded-full bg-[#7c3aed]"
-                                style={{ width: visible ? `${bar2pct}%` : '0%', transition: 'width 1.2s ease' }}
-                            />
-                        </div>
-                    </div>
-                </div>
-
                 {/* Center — radar */}
                 <div className="flex items-center justify-center w-32">
                     <HexChart />
@@ -94,7 +57,7 @@ const JudgeResult = ({ score1, score2, analysis, winnerName }) => {
                             <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                         </svg>
                         <span className="text-[9px] font-black tracking-widest text-[#71717a] uppercase">
-                            Winner Declared: <span className="text-[#c8f135]">{winnerName || (winner === 1 ? 'NEURAL-7' : winner === 2 ? 'CORTEX-X' : 'TIE')}</span>
+                            Winner Declared: <span className="text-[#c8f135]">{winnerName || 'TIE'}</span>
                         </span>
                     </div>
                 </div>

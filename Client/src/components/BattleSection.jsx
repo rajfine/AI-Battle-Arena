@@ -1,8 +1,8 @@
 import React from 'react'
 import AIPanel from './AIPanel'
 
-const BattleSection = ({ solution1, solution2, isLoading, winner }) => (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 flex-1 min-h-0 overflow-y-auto">
+const BattleSection = ({ solution1, solution2, isLoading, winner, acc1, acc2, speed1, speed2 }) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-5 pb-5 w-full">
         <AIPanel
             label="COMBATANT ALPHA"
             modelName="Neural-7"
@@ -11,6 +11,8 @@ const BattleSection = ({ solution1, solution2, isLoading, winner }) => (
             solution={solution1}
             isLoading={isLoading}
             isWinner={winner === 1}
+            accuracy={acc1}
+            speed={speed1}
         />
         <AIPanel
             label="COMBATANT BETA"
@@ -20,6 +22,8 @@ const BattleSection = ({ solution1, solution2, isLoading, winner }) => (
             solution={solution2}
             isLoading={isLoading}
             isWinner={winner === 2}
+            accuracy={acc2}
+            speed={speed2}
         />
     </div>
 )

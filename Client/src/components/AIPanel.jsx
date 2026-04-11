@@ -17,7 +17,7 @@ const parseContent = (text) => {
     return parts
 }
 
-const AIPanel = ({ label, modelName, badgeText, badgeStyle, solution, isLoading, isWinner }) => {
+const AIPanel = ({ label, modelName, badgeText, badgeStyle, solution, isLoading, isWinner, accuracy, speed }) => {
     const [copied, setCopied] = useState(false)
     const parts = parseContent(solution)
 
@@ -91,6 +91,38 @@ const AIPanel = ({ label, modelName, badgeText, badgeStyle, solution, isLoading,
                     </div>
                 )}
             </div>
+
+            {/* Metrics */}
+            {solution && !isLoading && accuracy !== undefined && speed !== undefined && (
+                <div className="px-5 py-4 border-t border-white/5 space-y-4 bg-[#0d0d0f]">
+                    {/* Accuracy */}
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-[9px] font-black tracking-widest text-[#71717a] uppercase">Accuracy</span>
+                            <span className="text-[11px] font-black text-white">{accuracy}%</span>
+                        </div>
+                        <div className="h-1 rounded-full bg-[#1a1a1e] overflow-hidden">
+                            <div 
+                                className="h-full rounded-full transition-all duration-1000 ease-out" 
+                                style={{ width: `${accuracy}%`, backgroundColor: isWinner ? '#c8f135' : '#7c3aed' }} 
+                            />
+                        </div>
+                    </div>
+                    {/* Speed */}
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-[9px] font-black tracking-widest text-[#71717a] uppercase">Speed</span>
+                            <span className="text-[11px] font-black" style={{ color: isWinner ? '#c8f135' : '#7c3aed' }}>{speed}ms</span>
+                        </div>
+                        <div className="h-1 rounded-full bg-[#1a1a1e] overflow-hidden">
+                            <div 
+                                className="h-full rounded-full transition-all duration-1000 ease-out" 
+                                style={{ width: `${Math.min((speed / 800) * 100, 100)}%`, backgroundColor: isWinner ? '#c8f135' : '#7c3aed' }} 
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Copy solution footer */}
             {solution && !isLoading && (

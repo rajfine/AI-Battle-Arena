@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useRef, useEffect } from 'react'
 import Header from '../components/Header'
 import Sidebar from '../components/Sidebar'
 import PromptInput from '../components/PromptInput'
@@ -8,11 +8,40 @@ import './App.css'
 
 const App = () => {
     const [isLoading, setIsLoading] = useState(false)
-    const [battleResult, setBattleResult] = useState(null)
+    const [chatRounds, setChatRounds] = useState([])
+    const messagesEndRef = useRef(null)
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+
+    useEffect(() => {
+        scrollToBottom()
+    }, [chatRounds])
 
     const startBattle = useCallback(async (prompt) => {
         setIsLoading(true)
-        setBattleResult(null)
+        
+        setChatRounds(prev => [...prev, {
+            id: Date.now(),
+            prompt,
+            isLoading: true,
+            solution1: null,
+            solution2: null,
+            score1: null,
+            score2: null,
+            speed1: null,
+            speed2: null
+        }])
+
+        const mockData = {
+            solution1: `To implement a secure WebSocket handshake in a distributed environment using Redis as the pub/sub backbone, you should consider the following architectural pattern:\n\n\`\`\`javascript\nconst WebSocket = require('ws');\nconst redis = require('redis');\n\nconst wss = new WebSocket.Server({ port: 8080 });\nconst pub = redis.createClient();\nconst sub = redis.createClient();\n\nsub.subscribe('chat_channel');\n\nwss.on('connection', (ws) => {\n  ws.on('message', (message) => {\n    pub.publish('chat_channel', message);\n  });\n});\`\`\``,
+            solution2: `A robust approach for handling distributed WebSocket connections involves a central Gateway API and a message broker. Here's a simplified version focusing on the connection logic and state synchronization.\n\n\`\`\`python\nimport asyncio\nimport websockets\n\nasync def handler(websocket, path):\n    data = await websocket.recv()\n    print(f"Data received: {data}")\n    await websocket.send("Auth OK")\n\nstart_server = websockets.serve(handler, 'localhost', 8765)\nasyncio.get_event_loop().run_until_complete(start_server)\nasyncio.get_event_loop().run_forever()\`\`\``,
+            score1: 98,
+            score2: 82,
+            speed1: 240,
+            speed2: 410,
+        }
 
         try {
             const res = await fetch('http://localhost:8000/battle', {
@@ -23,31 +52,42 @@ const App = () => {
             if (!res.ok) throw new Error(`${res.status}`)
             const data = await res.json()
 
-            setBattleResult({
-                solution1: data.solution_1 || '',
-                solution2: data.solution_2 || '',
-                score1: data.judge_recommendation?.solution_1_score ?? 0,
-                score2: data.judge_recommendation?.solution_2_score ?? 0,
+            setChatRounds(prev => {
+                const newRounds = [...prev]
+                const last = { ...newRounds[newRounds.length - 1] }
+                last.solution1 = data.solution_1 || mockData.solution1
+                last.solution2 = data.solution_2 || mockData.solution2
+                last.score1 = data.judge_recommendation?.solution_1_score ?? mockData.score1
+                last.score2 = data.judge_recommendation?.solution_2_score ?? mockData.score2
+                last.speed1 = mockData.speed1
+                last.speed2 = mockData.speed2
+                last.isLoading = false
+                newRounds[newRounds.length - 1] = last
+                return newRounds
             })
-        } catch {
-            // Mock data for dev/testing when backend is unreachable
-            setBattleResult({
-                solution1: `To implement a secure WebSocket handshake in a distributed environment using Redis as the pub/sub backbone, you should consider the following architectural pattern:\n\n\`\`\`javascript\nconst WebSocket = require('ws');\nconst redis = require('redis');\n\nconst wss = new WebSocket.Server({ port: 8080 });\nconst pub = redis.createClient();\nconst sub = redis.createClient();\n\nsub.subscribe('chat_channel');\n\nwss.on('connection', (ws) => {\n  ws.on('message', (message) => {\n    pub.publish('chat_channel', message);\n  });\n});\`\`\``,
-                solution2: `A robust approach for handling distributed WebSocket connections involves a central Gateway API and a message broker. Here's a simplified version focusing on the connection logic and state synchronization.\n\n\`\`\`python\nimport asyncio\nimport websockets\n\nasync def handler(websocket, path):\n    data = await websocket.recv()\n    print(f"Data received: {data}")\n    await websocket.send("Authenticated")\n\nstart_server = websockets.serve(handler, 'localhost', 8765)\nasyncio.get_event_loop().run_until_complete(start_server)\nasyncio.get_event_loop().run_forever()\`\`\``,
-                score1: 98,
-                score2: 240,
-            })
-        } finally {
             setIsLoading(false)
+        } catch {
+            setTimeout(() => {
+                setChatRounds(prev => {
+                    const newRounds = [...prev]
+                    if (newRounds.length === 0) return newRounds;
+                    const last = { ...newRounds[newRounds.length - 1] }
+                    last.solution1 = mockData.solution1
+                    last.solution2 = mockData.solution2
+                    last.score1 = mockData.score1
+                    last.score2 = mockData.score2
+                    last.speed1 = mockData.speed1
+                    last.speed2 = mockData.speed2
+                    last.isLoading = false
+                    newRounds[newRounds.length - 1] = last
+                    return newRounds
+                })
+                setIsLoading(false)
+            }, 1000)
         }
     }, [])
 
-    const resetBattle = () => setBattleResult(null)
-
-    const winner = battleResult
-        ? battleResult.score1 > battleResult.score2 ? 1
-            : battleResult.score2 > battleResult.score1 ? 2 : 0
-        : null
+    const resetBattle = () => setChatRounds([])
 
     return (
         <div className="flex flex-col h-screen bg-[#0b0b0d] overflow-hidden">
@@ -56,24 +96,52 @@ const App = () => {
                 <Sidebar onNewBattle={resetBattle} />
 
                 {/* Main content */}
-                <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-                    <PromptInput onSubmit={startBattle} isLoading={isLoading} />
-
-                    <div className="flex-1 min-h-0 overflow-y-auto">
-                        <BattleSection
-                            solution1={battleResult?.solution1}
-                            solution2={battleResult?.solution2}
-                            isLoading={isLoading}
-                            winner={winner}
-                        />
-
-                        {!isLoading && battleResult && (
-                            <JudgeResult
-                                score1={battleResult.score1}
-                                score2={battleResult.score2}
-                                winnerName={winner === 1 ? 'NEURAL-7' : winner === 2 ? 'CORTEX-X' : 'TIE'}
-                            />
+                <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+                    <div className="flex-1 min-h-0 overflow-y-auto flex flex-col pt-8 pb-4">
+                        {chatRounds.length === 0 && (
+                            <div className="flex-1 flex items-center justify-center text-[#52525b] text-sm">
+                                No chat history. Start a battle to begin.
+                            </div>
                         )}
+                        {chatRounds.map((round) => {
+                            const winner = (!round.isLoading && round.score1 !== null)
+                                ? (round.score1 > round.score2 ? 1 : round.score2 > round.score1 ? 2 : 0)
+                                : null
+
+                            return (
+                                <div key={round.id} className="flex flex-col mb-10 w-full shrink-0">
+                                    <div className="flex justify-end mb-6 px-5 w-full">
+                                        <div className="bg-[#1a1a1e] border border-white/10 rounded-2xl p-4 md:max-w-[70%] max-w-[90%] relative rounded-tr-sm">
+                                            <p className="text-[#e5e1e4] text-[13px] md:text-sm italic leading-relaxed whitespace-pre-wrap break-words">
+                                                {`"${round.prompt}"`}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <BattleSection
+                                        solution1={round.solution1}
+                                        solution2={round.solution2}
+                                        isLoading={round.isLoading}
+                                        winner={winner}
+                                        acc1={round.score1}
+                                        acc2={round.score2}
+                                        speed1={round.speed1}
+                                        speed2={round.speed2}
+                                    />
+
+                                    {!round.isLoading && round.score1 !== null && (
+                                        <JudgeResult
+                                            winnerName={winner === 1 ? 'NEURAL-7' : winner === 2 ? 'CORTEX-X' : 'TIE'}
+                                        />
+                                    )}
+                                </div>
+                            )
+                        })}
+                        <div ref={messagesEndRef} className="h-4" />
+                    </div>
+
+                    <div className="shrink-0 bg-[#0b0b0d]">
+                        <PromptInput onSubmit={startBattle} isLoading={isLoading} />
                     </div>
                 </main>
             </div>

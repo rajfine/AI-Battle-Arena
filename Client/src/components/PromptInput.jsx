@@ -27,7 +27,7 @@ const PromptInput = ({ onSubmit, isLoading }) => {
     }
 
     return (
-        <div className="p-5 border-b border-white/5 shrink-0">
+        <div className="p-5 border-t border-white/5 shrink-0 bg-[#0b0b0d]">
             <p className="text-[10px] font-black tracking-[0.25em] text-[#71717a] mb-3 uppercase">
                 Initiate Neural Conflict
             </p>
