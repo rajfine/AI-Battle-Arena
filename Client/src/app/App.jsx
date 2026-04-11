@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react'
 import Header from '../components/Header'
 import Sidebar from '../components/Sidebar'
+import ChatHistory from '../components/ChatHistory'
 import PromptInput from '../components/PromptInput'
 import BattleSection from '../components/BattleSection'
 import JudgeResult from '../components/JudgeResult'
@@ -8,8 +9,13 @@ import './App.css'
 
 const App = () => {
     const [isLoading, setIsLoading] = useState(false)
-    const [chatRounds, setChatRounds] = useState([])
+    const [isHistoryOpen, setIsHistoryOpen] = useState(true)
+    const [sessions, setSessions] = useState([])
+    const [activeSessionId, setActiveSessionId] = useState(null)
     const messagesEndRef = useRef(null)
+
+    const activeSession = sessions.find(s => s.id === activeSessionId)
+    const chatRounds = activeSession ? activeSession.rounds : []
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -21,8 +27,19 @@ const App = () => {
 
     const startBattle = useCallback(async (prompt) => {
         setIsLoading(true)
-        
-        setChatRounds(prev => [...prev, {
+
+        let currentSessionId = activeSessionId
+        let isNewSession = false
+
+        if (!currentSessionId) {
+            currentSessionId = Date.now()
+            isNewSession = true
+            setActiveSessionId(currentSessionId)
+        }
+
+        const now = new Date()
+        const timestamp = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        const newRound = {
             id: Date.now(),
             prompt,
             isLoading: true,
@@ -32,7 +49,24 @@ const App = () => {
             score2: null,
             speed1: null,
             speed2: null
-        }])
+        }
+
+        setSessions(prev => {
+            if (isNewSession) {
+                return [{
+                    id: currentSessionId,
+                    prompt: prompt.slice(0, 30) + (prompt.length > 30 ? '...' : ''),
+                    timestamp,
+                    rounds: [newRound]
+                }, ...prev]
+            } else {
+                return prev.map(s => 
+                    s.id === currentSessionId 
+                        ? { ...s, rounds: [...s.rounds, newRound] } 
+                        : s
+                )
+            }
+        })
 
         const mockData = {
             solution1: `To implement a secure WebSocket handshake in a distributed environment using Redis as the pub/sub backbone, you should consider the following architectural pattern:\n\n\`\`\`javascript\nconst WebSocket = require('ws');\nconst redis = require('redis');\n\nconst wss = new WebSocket.Server({ port: 8080 });\nconst pub = redis.createClient();\nconst sub = redis.createClient();\n\nsub.subscribe('chat_channel');\n\nwss.on('connection', (ws) => {\n  ws.on('message', (message) => {\n    pub.publish('chat_channel', message);\n  });\n});\`\`\``,
@@ -52,51 +86,69 @@ const App = () => {
             if (!res.ok) throw new Error(`${res.status}`)
             const data = await res.json()
 
-            setChatRounds(prev => {
-                const newRounds = [...prev]
-                const last = { ...newRounds[newRounds.length - 1] }
-                last.solution1 = data.solution_1 || mockData.solution1
-                last.solution2 = data.solution_2 || mockData.solution2
-                last.score1 = data.judge_recommendation?.solution_1_score ?? mockData.score1
-                last.score2 = data.judge_recommendation?.solution_2_score ?? mockData.score2
-                last.speed1 = mockData.speed1
-                last.speed2 = mockData.speed2
-                last.isLoading = false
-                newRounds[newRounds.length - 1] = last
-                return newRounds
-            })
-            setIsLoading(false)
-        } catch {
-            setTimeout(() => {
-                setChatRounds(prev => {
-                    const newRounds = [...prev]
-                    if (newRounds.length === 0) return newRounds;
+            setSessions(prev => 
+                prev.map(s => {
+                    if (s.id !== currentSessionId) return s
+                    const newRounds = [...s.rounds]
                     const last = { ...newRounds[newRounds.length - 1] }
-                    last.solution1 = mockData.solution1
-                    last.solution2 = mockData.solution2
-                    last.score1 = mockData.score1
-                    last.score2 = mockData.score2
+                    last.solution1 = data.solution_1 || mockData.solution1
+                    last.solution2 = data.solution_2 || mockData.solution2
+                    last.score1 = data.judge_recommendation?.solution_1_score ?? mockData.score1
+                    last.score2 = data.judge_recommendation?.solution_2_score ?? mockData.score2
                     last.speed1 = mockData.speed1
                     last.speed2 = mockData.speed2
                     last.isLoading = false
                     newRounds[newRounds.length - 1] = last
-                    return newRounds
+                    return { ...s, rounds: newRounds }
                 })
+            )
+            setIsLoading(false)
+        } catch {
+            setTimeout(() => {
+                setSessions(prev => 
+                    prev.map(s => {
+                        if (s.id !== currentSessionId) return s
+                        const newRounds = [...s.rounds]
+                        if (newRounds.length === 0) return s
+                        const last = { ...newRounds[newRounds.length - 1] }
+                        last.solution1 = mockData.solution1
+                        last.solution2 = mockData.solution2
+                        last.score1 = mockData.score1
+                        last.score2 = mockData.score2
+                        last.speed1 = mockData.speed1
+                        last.speed2 = mockData.speed2
+                        last.isLoading = false
+                        newRounds[newRounds.length - 1] = last
+                        return { ...s, rounds: newRounds }
+                    })
+                )
                 setIsLoading(false)
             }, 1000)
         }
-    }, [])
+    }, [activeSessionId])
 
-    const resetBattle = () => setChatRounds([])
+    const resetBattle = () => setActiveSessionId(null)
 
     return (
         <div className="flex flex-col h-screen bg-[#0b0b0d] overflow-hidden">
             <Header />
             <div className="flex flex-1 min-h-0">
-                <Sidebar onNewBattle={resetBattle} />
+                <Sidebar 
+                    onNewBattle={resetBattle} 
+                    isHistoryOpen={isHistoryOpen}
+                    onToggleHistory={() => setIsHistoryOpen(prev => !prev)}
+                />
+                
+                {isHistoryOpen && (
+                    <ChatHistory 
+                        history={sessions}
+                        onSelect={(index) => setActiveSessionId(sessions[index].id)}
+                        currentIndex={sessions.findIndex(s => s.id === activeSessionId)}
+                    />
+                )}
 
                 {/* Main content */}
-                <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+                <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative border-l border-white/5">
                     <div className="flex-1 min-h-0 overflow-y-auto flex flex-col pt-8 pb-4">
                         {chatRounds.length === 0 && (
                             <div className="flex-1 flex items-center justify-center text-[#52525b] text-sm">

@@ -39,7 +39,7 @@ const navItems = [
     },
 ]
 
-const Sidebar = ({ onNewBattle }) => (
+const Sidebar = ({ onNewBattle, isHistoryOpen, onToggleHistory }) => (
     <aside className="w-[180px] shrink-0 flex flex-col bg-[#0f0f12] border-r border-white/5 h-full">
         {/* User card */}
         <div className="p-4 border-b border-white/5">
@@ -58,9 +58,16 @@ const Sidebar = ({ onNewBattle }) => (
 
         {/* Nav items */}
         <nav className="flex flex-col gap-0.5 p-2 flex-1">
-            {navItems.map(({ icon, label, active }) => (
+            {navItems.map(({ icon, label, ...item }) => {
+                const active = label === 'BATTLE HISTORY' ? isHistoryOpen : item.active;
+                return (
                 <button
                     key={label}
+                    onClick={() => {
+                        if (label === 'BATTLE HISTORY' && onToggleHistory) {
+                            onToggleHistory();
+                        }
+                    }}
                     className={`flex items-center gap-2.5 px-3 py-2.5 rounded text-left w-full transition-all duration-150 group ${active
                             ? 'bg-[#c8f135] text-black'
                             : 'text-[#71717a] hover:bg-white/5 hover:text-white'
@@ -71,7 +78,7 @@ const Sidebar = ({ onNewBattle }) => (
                     </span>
                     <span className="text-[10px] font-bold tracking-wider">{label}</span>
                 </button>
-            ))}
+            )})}
         </nav>
 
         {/* Bottom */}
