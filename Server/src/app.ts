@@ -9,11 +9,9 @@ app.get('/health',(req,res)=>{
   })
 })
 
-app.post("/usegraph", async (req, res)=>{
+app.get("/usegraph", async (req, res)=>{
   const result: any = await useGraph("write the factorial code in java")
-  return res.status(200).json({
-    messages: {result}
-  })
+  return res.status(200).json(result)
 })
 
 
