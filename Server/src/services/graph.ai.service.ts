@@ -47,8 +47,8 @@ const judgeNode: GraphNode<typeof State> = async (state: typeof State)=>{
     model: geminiModel,
     tools: [],
     responseFormat: providerStrategy(z.object({
-      solution_1_score: z.number().min(0).max(10),
-      solution_2_score: z.number().min(0).max(10),
+      solution_1_score: z.number().min(0).max(100),
+      solution_2_score: z.number().min(0).max(100),
       
     }))
   })
@@ -56,7 +56,7 @@ const judgeNode: GraphNode<typeof State> = async (state: typeof State)=>{
   const judgeResponse = await judge.invoke({
     messages: [
       new HumanMessage(
-        `you are the judge evaluating two solutions for the question: ${state.messages[0].text} and please provide a score for each solution between 0 and 10, where 10 is the best score. Here are the two solutions: Solution 1: ${solution_1}, Solution 2: ${solution_2}, the solution with the highest score is the winner. Please provide only the scores in your response without any additional text`
+        `you are the judge evaluating two solutions for the question: ${state.messages[0].text} and please provide a score for each solution between 0 and 100, where 100 is the best score. Here are the two solutions: Solution 1: ${solution_1}, Solution 2: ${solution_2}, the solution with the highest score is the winner. Please provide only the scores in your response without any additional text`
         )
     ]
   })

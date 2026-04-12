@@ -23,14 +23,27 @@ app.get("/usegraph", async (req, res)=>{
 })
 
 app.post("/invoke", async (req, res)=>{
-  const {input} = req.body
-  const result: any  = await useGraph(input)
+  try {
+    const {input} = req.body
+    const result: any  = await useGraph(input)
 
-  return res.status(200).json({
-    message: "graph executed successfully",
-    success: true,
-    result
-  })
+    return res.status(200).json({
+      message: "graph executed successfully",
+      success: true,
+      result
+    })
+  } catch (error: any) {
+    console.error("Error executing graph:", error.message || error);
+    
+    // Determine the status code based on the error
+    const statusCode = error?.status || error?.statusCode || error?.response?.status || 500;
+    
+    return res.status(statusCode).json({
+      success: false,
+      message: error.message || "An error occurred during graph execution",
+      error: error
+    });
+  }
 })
 
 

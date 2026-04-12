@@ -10,11 +10,9 @@ import './ArenaPage.css'
 import axios from 'axios'
 
 const ArenaPage = () => {
-    const { model1, model2 } = useBattleContext()
+    const { model1, model2, sessions, setSessions, activeSessionId, setActiveSessionId } = useBattleContext()
     const [isLoading, setIsLoading] = useState(false)
     const [isHistoryOpen, setIsHistoryOpen] = useState(false)
-    const [sessions, setSessions] = useState([])
-    const [activeSessionId, setActiveSessionId] = useState(null)
     const messagesEndRef = useRef(null)
 
     const activeSession = sessions.find(s => s.id === activeSessionId)
@@ -30,12 +28,6 @@ const ArenaPage = () => {
 
     const startBattle = useCallback(async (prompt) => {
         setIsLoading(true)
-
-        const res = await axios.post('http://localhost:3000/invoke', {
-            input: prompt
-        }, {withCredentials: true})
-        const data = res.data
-        console.log(data)
 
         let currentSessionId = activeSessionId
         let isNewSession = false
@@ -76,61 +68,62 @@ const ArenaPage = () => {
             }
         })
 
-        const mockData = {
-            solution1: `${data.result.solution_1}`,
-            solution2: `${data.result.solution_2}`,
-            score1: data.judge_recommendation?.solution_1_score ?? 78,
-            score2: data.judge_recommendation?.solution_2_score ?? 82,
-            speed1: 240,
-            speed2: 410,
-        }
-
         try {
             const res = await axios.post('http://localhost:3000/invoke', {
                 input: prompt
             }, {withCredentials: true})
             const data = res.data
+            console.log(data)
 
             setSessions(prev => 
                 prev.map(s => {
                     if (s.id !== currentSessionId) return s
                     const newRounds = [...s.rounds]
                     const last = { ...newRounds[newRounds.length - 1] }
-                    last.solution1 = data.solution_1  || mockData.solution1
-                    last.solution2 = data.solution_2  || mockData.solution2
-                    last.score1 = data.judge_recommendation?.solution_1_score ?? mockData.score1
-                    last.score2 = data.judge_recommendation?.solution_2_score ?? mockData.score2
-                    last.speed1 = mockData.speed1
-                    last.speed2 = mockData.speed2
+                    
+                    const solution1 = data.result?.solution_1 || data.solution_1 || "No solution provided from backend"
+                    const solution2 = data.result?.solution_2 || data.solution_2 || "No solution provided from backend"
+                    const judgeRec = data.judge_recommendation || data.result?.judge_recommendation || {}
+                    
+                    last.solution1 = String(solution1)
+                    last.solution2 = String(solution2)
+                    last.score1 = judgeRec.solution_1_score ?? 78
+                    last.score2 = judgeRec.solution_2_score ?? 82
+                    last.speed1 = 240
+                    last.speed2 = 410
                     last.isLoading = false
+                    
                     newRounds[newRounds.length - 1] = last
                     return { ...s, rounds: newRounds }
                 })
             )
+        } catch (error) {
+            console.error("Battle error:", error)
+            const errorMessage = error.response?.data?.message || "Failed to connect to backend or process request."
+            
+            setSessions(prev => 
+                prev.map(s => {
+                    if (s.id !== currentSessionId) return s
+                    const newRounds = [...s.rounds]
+                    if (newRounds.length === 0) return s
+                    const last = { ...newRounds[newRounds.length - 1] }
+                    
+                    last.solution1 = `Error: ${errorMessage}`
+                    last.solution2 = `Error: ${errorMessage}`
+                    last.score1 = 0
+                    last.score2 = 0
+                    last.speed1 = 0
+                    last.speed2 = 0
+                    last.isLoading = false
+                    
+                    newRounds[newRounds.length - 1] = last
+                    return { ...s, rounds: newRounds }
+                })
+            )
+        } finally {
             setIsLoading(false)
-            } catch {
-                setTimeout(() => {
-                    setSessions(prev => 
-                        prev.map(s => {
-                            if (s.id !== currentSessionId) return s
-                            const newRounds = [...s.rounds]
-                            if (newRounds.length === 0) return s
-                            const last = { ...newRounds[newRounds.length - 1] }
-                            last.solution1 = mockData.solution1
-                            last.solution2 = mockData.solution2
-                            last.score1 = mockData.score1
-                            last.score2 = mockData.score2
-                            last.speed1 = mockData.speed1
-                            last.speed2 = mockData.speed2
-                            last.isLoading = false
-                            newRounds[newRounds.length - 1] = last
-                            return { ...s, rounds: newRounds }
-                        })
-                    )
-                    setIsLoading(false)
-                }, 1000)
-            }
-        }, [activeSessionId])
+        }
+    }, [activeSessionId])
 
     const resetBattle = () => setActiveSessionId(null)
 
