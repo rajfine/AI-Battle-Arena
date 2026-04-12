@@ -82,7 +82,7 @@ export default async function(userMessage: string){
     ]
   })
   
-  console.log(result)
+  // console.log(result)
   return result;
 }
 

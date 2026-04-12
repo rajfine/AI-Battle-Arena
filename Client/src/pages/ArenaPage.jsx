@@ -7,6 +7,7 @@ import BattleSection from '../components/BattleSection'
 import JudgeResult from '../components/JudgeResult'
 import { useBattleContext } from '../context/BattleContext'
 import './ArenaPage.css'
+import axios from 'axios'
 
 const ArenaPage = () => {
     const { model1, model2 } = useBattleContext()
@@ -30,9 +31,14 @@ const ArenaPage = () => {
     const startBattle = useCallback(async (prompt) => {
         setIsLoading(true)
 
+        const res = await axios.post('http://localhost:3000/invoke', {
+            input: prompt
+        }, {withCredentials: true})
+        const data = res.data
+        console.log(data)
+
         let currentSessionId = activeSessionId
         let isNewSession = false
-
         if (!currentSessionId) {
             currentSessionId = Date.now()
             isNewSession = true
@@ -71,30 +77,27 @@ const ArenaPage = () => {
         })
 
         const mockData = {
-            solution1: `To implement a secure WebSocket handshake in a distributed environment using Redis as the pub/sub backbone, you should consider the following architectural pattern:\n\n\`\`\`javascript\nconst WebSocket = require('ws');\nconst redis = require('redis');\n\nconst wss = new WebSocket.Server({ port: 8080 });\nconst pub = redis.createClient();\nconst sub = redis.createClient();\n\nsub.subscribe('chat_channel');\n\nwss.on('connection', (ws) => {\n  ws.on('message', (message) => {\n    pub.publish('chat_channel', message);\n  });\n});\`\`\``,
-            solution2: `A robust approach for handling distributed WebSocket connections involves a central Gateway API and a message broker. Here's a simplified version focusing on the connection logic and state synchronization.\n\n\`\`\`python\nimport asyncio\nimport websockets\n\nasync def handler(websocket, path):\n    data = await websocket.recv()\n    print(f"Data received: {data}")\n    await websocket.send("Auth OK")\n\nstart_server = websockets.serve(handler, 'localhost', 8765)\nasyncio.get_event_loop().run_until_complete(start_server)\nasyncio.get_event_loop().run_forever()\`\`\``,
-            score1: 98,
-            score2: 82,
+            solution1: `${data.result.solution_1}`,
+            solution2: `${data.result.solution_2}`,
+            score1: data.judge_recommendation?.solution_1_score ?? 78,
+            score2: data.judge_recommendation?.solution_2_score ?? 82,
             speed1: 240,
             speed2: 410,
         }
 
         try {
-            const res = await fetch('http://localhost:8000/battle', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt }),
-            })
-            if (!res.ok) throw new Error(`${res.status}`)
-            const data = await res.json()
+            const res = await axios.post('http://localhost:3000/invoke', {
+                input: prompt
+            }, {withCredentials: true})
+            const data = res.data
 
             setSessions(prev => 
                 prev.map(s => {
                     if (s.id !== currentSessionId) return s
                     const newRounds = [...s.rounds]
                     const last = { ...newRounds[newRounds.length - 1] }
-                    last.solution1 = data.solution_1 || mockData.solution1
-                    last.solution2 = data.solution_2 || mockData.solution2
+                    last.solution1 = data.solution_1  || mockData.solution1
+                    last.solution2 = data.solution_2  || mockData.solution2
                     last.score1 = data.judge_recommendation?.solution_1_score ?? mockData.score1
                     last.score2 = data.judge_recommendation?.solution_2_score ?? mockData.score2
                     last.speed1 = mockData.speed1
@@ -105,29 +108,29 @@ const ArenaPage = () => {
                 })
             )
             setIsLoading(false)
-        } catch {
-            setTimeout(() => {
-                setSessions(prev => 
-                    prev.map(s => {
-                        if (s.id !== currentSessionId) return s
-                        const newRounds = [...s.rounds]
-                        if (newRounds.length === 0) return s
-                        const last = { ...newRounds[newRounds.length - 1] }
-                        last.solution1 = mockData.solution1
-                        last.solution2 = mockData.solution2
-                        last.score1 = mockData.score1
-                        last.score2 = mockData.score2
-                        last.speed1 = mockData.speed1
-                        last.speed2 = mockData.speed2
-                        last.isLoading = false
-                        newRounds[newRounds.length - 1] = last
-                        return { ...s, rounds: newRounds }
-                    })
-                )
-                setIsLoading(false)
-            }, 1000)
-        }
-    }, [activeSessionId])
+            } catch {
+                setTimeout(() => {
+                    setSessions(prev => 
+                        prev.map(s => {
+                            if (s.id !== currentSessionId) return s
+                            const newRounds = [...s.rounds]
+                            if (newRounds.length === 0) return s
+                            const last = { ...newRounds[newRounds.length - 1] }
+                            last.solution1 = mockData.solution1
+                            last.solution2 = mockData.solution2
+                            last.score1 = mockData.score1
+                            last.score2 = mockData.score2
+                            last.speed1 = mockData.speed1
+                            last.speed2 = mockData.speed2
+                            last.isLoading = false
+                            newRounds[newRounds.length - 1] = last
+                            return { ...s, rounds: newRounds }
+                        })
+                    )
+                    setIsLoading(false)
+                }, 1000)
+            }
+        }, [activeSessionId])
 
     const resetBattle = () => setActiveSessionId(null)
 
@@ -180,11 +183,10 @@ const ArenaPage = () => {
                                             </p>
                                         </div>
                                     </div>
-
                                     <BattleSection
+                                        isLoading={round.isLoading}
                                         solution1={round.solution1}
                                         solution2={round.solution2}
-                                        isLoading={round.isLoading}
                                         winner={winner}
                                         acc1={round.score1}
                                         acc2={round.score2}

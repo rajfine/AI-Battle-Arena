@@ -47,14 +47,14 @@ const PromptInput = ({ onSubmit, isLoading }) => {
                 onClick={handleSubmit}
                 disabled={isLoading || !prompt.trim()}
                 className={`
-          w-full py-3 rounded font-black text-[11px] tracking-[0.3em] transition-all duration-200
-          disabled:opacity-40 disabled:cursor-not-allowed
-          ${isLoading
+                    w-full py-3 rounded font-black text-[11px] tracking-[0.3em] transition-all duration-200
+                    disabled:opacity-40 disabled:cursor-not-allowed
+                    ${isLoading
                         ? 'bg-[#1a1a1e] text-[#71717a]'
                         : 'bg-[#c8f135] text-black hover:bg-[#d4f53c] hover:scale-[1.01] active:scale-[0.99]'
                     }
-        `}
-            >
+                `}
+                >
                 {isLoading ? (
                     <span className="flex items-center justify-center gap-2">
                         {[0, 1, 2].map(i => (
