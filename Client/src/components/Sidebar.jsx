@@ -1,4 +1,5 @@
 import React from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 const navItems = [
     {
@@ -39,10 +40,14 @@ const navItems = [
     },
 ]
 
-const Sidebar = ({ onNewBattle, isHistoryOpen, onToggleHistory }) => (
+const Sidebar = ({ onNewBattle, isHistoryOpen, onToggleHistory }) => {
+    const navigate = useNavigate()
+    const location = useLocation()
+    
+    return (
     <aside className="w-[180px] shrink-0 flex flex-col bg-[#0f0f12] border-r border-white/5 h-full">
         {/* User card */}
-        <div className="p-4 border-b border-white/5">
+        <div className="p-4 border-b border-white/5 cursor-pointer hover:bg-white/5 transition-colors" onClick={() => navigate('/')}>
             <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-[#1a1a1e] border border-white/10 flex items-center justify-center text-[#c8f135]">
                     <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20">
@@ -58,14 +63,26 @@ const Sidebar = ({ onNewBattle, isHistoryOpen, onToggleHistory }) => (
 
         {/* Nav items */}
         <nav className="flex flex-col gap-0.5 p-2 flex-1">
-            {navItems.map(({ icon, label, ...item }) => {
-                const active = label === 'BATTLE HISTORY' ? isHistoryOpen : item.active;
+            {navItems.map(({ icon, label }) => {
+                const isModels = label === 'MODEL FORGE'
+                const isHistory = label === 'BATTLE HISTORY'
+                
+                let active = false
+                if (isModels) active = location.pathname === '/models'
+                if (isHistory && location.pathname === '/') active = isHistoryOpen
+                
                 return (
                 <button
                     key={label}
                     onClick={() => {
-                        if (label === 'BATTLE HISTORY' && onToggleHistory) {
-                            onToggleHistory();
+                        if (isHistory) {
+                            if (location.pathname !== '/') {
+                                navigate('/')
+                            } else if (onToggleHistory) {
+                                onToggleHistory()
+                            }
+                        } else if (isModels) {
+                            navigate('/models')
                         }
                     }}
                     className={`flex items-center gap-2.5 px-3 py-2.5 rounded text-left w-full transition-all duration-150 group ${active
@@ -103,6 +120,6 @@ const Sidebar = ({ onNewBattle, isHistoryOpen, onToggleHistory }) => (
             </button>
         </div>
     </aside>
-)
+)}
 
 export default Sidebar
