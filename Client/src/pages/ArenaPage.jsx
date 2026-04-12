@@ -69,37 +69,94 @@ const ArenaPage = () => {
         })
 
         try {
-            const res = await axios.post('http://localhost:3000/invoke', {
-                input: prompt
-            }, {withCredentials: true})
-            const data = res.data
-            console.log(data)
+            const response = await fetch('http://localhost:3000/invoke', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ input: prompt }),
+                credentials: 'omit' // use 'include' if you want cookies
+            });
 
-            setSessions(prev => 
-                prev.map(s => {
-                    if (s.id !== currentSessionId) return s
-                    const newRounds = [...s.rounds]
-                    const last = { ...newRounds[newRounds.length - 1] }
-                    
-                    const solution1 = data.result?.solution_1 || data.solution_1 || "No solution provided from backend"
-                    const solution2 = data.result?.solution_2 || data.solution_2 || "No solution provided from backend"
-                    const judgeRec = data.judge_recommendation || data.result?.judge_recommendation || {}
-                    
-                    last.solution1 = String(solution1)
-                    last.solution2 = String(solution2)
-                    last.score1 = judgeRec.solution_1_score ?? 78
-                    last.score2 = judgeRec.solution_2_score ?? 82
-                    last.speed1 = 240
-                    last.speed2 = 410
-                    last.isLoading = false
-                    
-                    newRounds[newRounds.length - 1] = last
-                    return { ...s, rounds: newRounds }
-                })
-            )
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder("utf-8");
+
+            let currentSolution1 = "";
+            let currentSolution2 = "";
+            let buffer = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || "";
+
+                for (let line of lines) {
+                    if (line.trim() === '') continue;
+                    if (line.startsWith('data: ')) {
+                        const dataStr = line.slice(6);
+                        if (dataStr === '[DONE]') continue;
+
+                        try {
+                            const data = JSON.parse(dataStr);
+
+                            if (data.type === 'chunk') {
+                                if (data.model === 1) {
+                                    currentSolution1 += data.content;
+                                } else if (data.model === 2) {
+                                    currentSolution2 += data.content;
+                                }
+
+                                setSessions(prev =>
+                                    prev.map(s => {
+                                        if (s.id !== currentSessionId) return s;
+                                        const newRounds = [...s.rounds];
+                                        const last = { ...newRounds[newRounds.length - 1] };
+                                        last.solution1 = currentSolution1;
+                                        last.solution2 = currentSolution2;
+                                        newRounds[newRounds.length - 1] = last;
+                                        return { ...s, rounds: newRounds };
+                                    })
+                                );
+                            } else if (data.type === 'end') {
+                                const judgeRec = data.result?.judge_recommendation || {};
+                                
+                                setSessions(prev =>
+                                    prev.map(s => {
+                                        if (s.id !== currentSessionId) return s;
+                                        const newRounds = [...s.rounds];
+                                        const last = { ...newRounds[newRounds.length - 1] };
+                                        
+                                        // Update from full result just in case
+                                        last.solution1 = data.result?.solution_1 || currentSolution1;
+                                        last.solution2 = data.result?.solution_2 || currentSolution2;
+                                        last.score1 = judgeRec.solution_1_score ?? 78;
+                                        last.score2 = judgeRec.solution_2_score ?? 82;
+                                        last.reasoning = judgeRec.reasoning || "";
+                                        last.speed1 = 240;
+                                        last.speed2 = 410;
+                                        last.isLoading = false;
+                                        
+                                        newRounds[newRounds.length - 1] = last;
+                                        return { ...s, rounds: newRounds };
+                                    })
+                                );
+                            } else if (data.type === 'error') {
+                                throw new Error(data.message);
+                            }
+                        } catch (err) {
+                            if (err.message.includes("JSON")) {
+                                console.warn("Failed to parse chunk:", dataStr);
+                            } else {
+                                throw err;
+                            }
+                        }
+                    }
+                }
+            }
         } catch (error) {
             console.error("Battle error:", error)
-            const errorMessage = error.response?.data?.message || "Failed to connect to backend or process request."
+            const errorMessage = error.message || "Failed to connect to backend or process request."
             
             setSessions(prev => 
                 prev.map(s => {
@@ -190,6 +247,7 @@ const ArenaPage = () => {
                                     {!round.isLoading && round.score1 !== null && (
                                         <JudgeResult
                                             winnerName={winner === 1 ? 'NEURAL-7' : winner === 2 ? 'CORTEX-X' : 'TIE'}
+                                            reasoning={round.reasoning}
                                         />
                                     )}
                                 </div>

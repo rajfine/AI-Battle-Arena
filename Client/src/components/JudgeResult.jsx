@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 
-const JudgeResult = ({ analysis, winnerName }) => {
+const JudgeResult = ({ reasoning, winnerName }) => {
     const [visible, setVisible] = useState(false)
     useEffect(() => { const t = setTimeout(() => setVisible(true), 80); return () => clearTimeout(t) }, [])
 
@@ -50,7 +50,7 @@ const JudgeResult = ({ analysis, winnerName }) => {
                 <div className="flex-1 space-y-2">
                     <p className="text-[9px] font-black tracking-[0.2em] text-[#c8f135] uppercase">Critical Analysis</p>
                     <p className="text-[11px] text-[#71717a] leading-relaxed italic">
-                        {analysis || `"Neural-7 demonstrated superior architectural depth. While Cortex-X offered a cleaner syntax, it lacked the production-readiness required for the high-concurrency constraints defined in the prompt."`}
+                        {reasoning || `"Neural-7 demonstrated superior architectural depth. While Cortex-X offered a cleaner syntax, it lacked the production-readiness required for the high-concurrency constraints defined in the prompt."`}
                     </p>
                     <div className="flex items-center gap-2 pt-2 border-t border-white/5 mt-3">
                         <svg width="10" height="10" fill="#c8f135" viewBox="0 0 20 20">
