@@ -7,7 +7,7 @@ const app = express()
 app.use(express.json())
 
 app.use(cors({
-  origin: 'http://localhost:5174', // Update this to match your frontend's URL and port
+  origin: 'https://ai-battle-arena-vrcd.vercel.app/', // Update this to match your frontend's URL and port
   credentials: true, // Allow cookies to be sent with requests
 }))
 
