@@ -9,6 +9,8 @@ import { useBattleContext } from '../context/BattleContext'
 import './ArenaPage.css'
 import axios from 'axios'
 
+const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '')
+
 const ArenaPage = () => {
     const { model1, model2, sessions, setSessions, activeSessionId, setActiveSessionId } = useBattleContext()
     const [isLoading, setIsLoading] = useState(false)
@@ -69,7 +71,7 @@ const ArenaPage = () => {
         })
 
         try {
-            const response = await fetch('http://localhost:3000/invoke', {
+            const response = await fetch(`${apiUrl}/invoke`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ input: prompt }),

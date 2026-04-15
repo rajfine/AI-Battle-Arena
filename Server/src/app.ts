@@ -3,11 +3,12 @@ import useGraph, { streamGraph } from './services/graph.ai.service.js'
 import cors from 'cors'
 
 const app = express()
+const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:5174'
 
 app.use(express.json())
 
 app.use(cors({
-  origin: 'https://ai-battle-arena-vrcd.vercel.app/', // Update this to match your frontend's URL and port
+  origin: allowedOrigin,
   credentials: true, // Allow cookies to be sent with requests
 }))
 
