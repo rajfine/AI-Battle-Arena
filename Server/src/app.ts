@@ -1,6 +1,7 @@
 import express from 'express'
 import useGraph, { streamGraph } from './services/graph.ai.service.js'
 import cors from 'cors'
+import type { CorsOptionsDelegate } from 'cors'
 
 const app = express()
 const allowedOrigins = [
@@ -11,15 +12,19 @@ const allowedOrigins = [
 
 app.use(express.json())
 
-app.use(cors({
-  origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true)
-      return
-    }
+const corsOrigin: CorsOptionsDelegate = (origin, callback) => {
+  const requestOrigin = typeof origin === 'string' ? origin : undefined
 
-    callback(new Error('Not allowed by CORS'))
-  },
+  if (!requestOrigin || allowedOrigins.includes(requestOrigin)) {
+    callback(null, true)
+    return
+  }
+
+  callback(new Error('Not allowed by CORS'))
+}
+
+app.use(cors({
+  origin: corsOrigin,
   credentials: true,
 }))
 
