@@ -165,12 +165,17 @@ const ArenaPage = () => {
                     if (newRounds.length === 0) return s
                     const last = { ...newRounds[newRounds.length - 1] }
                     
-                    last.solution1 = `Error: ${errorMessage}`
-                    last.solution2 = `Error: ${errorMessage}`
+                    // Keep existing solutions if any, otherwise show error
+                    if (!last.solution1 && !last.solution2) {
+                        last.solution1 = `Error: ${errorMessage}`
+                        last.solution2 = `Error: ${errorMessage}`
+                    }
+                    
                     last.score1 = 0
                     last.score2 = 0
                     last.speed1 = 0
                     last.speed2 = 0
+                    last.reasoning = `Judge System Failure: ${errorMessage}`
                     last.isLoading = false
                     
                     newRounds[newRounds.length - 1] = last
@@ -244,8 +249,9 @@ const ArenaPage = () => {
                                         speed2={round.speed2}
                                     />
 
-                                    {!round.isLoading && round.score1 !== null && (
+                                    {(round.isLoading || round.score1 !== null) && (
                                         <JudgeResult
+                                            isLoading={round.isLoading}
                                             winnerName={winner === 1 ? 'NEURAL-7' : winner === 2 ? 'CORTEX-X' : 'TIE'}
                                             reasoning={round.reasoning}
                                         />
