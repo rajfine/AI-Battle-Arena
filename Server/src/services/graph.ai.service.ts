@@ -26,12 +26,23 @@ const State = new StateSchema({
   })
 });
 
+function getUserMessageContent(state: typeof State.State) {
+  const firstMessage = state.messages[0]
+
+  if (!firstMessage || typeof firstMessage.content !== 'string') {
+    throw new Error('A user message is required to run the graph')
+  }
+
+  return firstMessage.content
+}
+
 const solutionNode = async (state: typeof State.State, config?: any)=>{
   const callbacks = config?.callbacks;
+  const userMessage = getUserMessageContent(state)
 
   const [mistral_solution, cohere_solution] = await Promise.all([
-    mistralModel.invoke(state.messages[0].content as string, { callbacks, runName: "mistral" }),
-    cohereModel.invoke(state.messages[0].content as string, { callbacks, runName: "cohere" }),
+    mistralModel.invoke(userMessage, { callbacks, runName: "mistral" }),
+    cohereModel.invoke(userMessage, { callbacks, runName: "cohere" }),
   ])
 
   return {
@@ -42,6 +53,7 @@ const solutionNode = async (state: typeof State.State, config?: any)=>{
 
 const judgeNode = async (state: typeof State.State)=>{
   const {solution_1, solution_2} = state;
+  const userMessage = getUserMessageContent(state)
   const judge = createAgent({
     model: geminiModel,
     tools: [],
@@ -55,7 +67,7 @@ const judgeNode = async (state: typeof State.State)=>{
   const judgeResponse = await judge.invoke({
     messages: [
       new HumanMessage(
-        `You are the judge evaluating two solutions for the question: "${state.messages[0].content}". 
+        `You are the judge evaluating two solutions for the question: "${userMessage}". 
 Please provide a score for each solution between 0 and 100, where 100 is the best score. 
 Here are the two solutions:
 Solution 1: ${solution_1}
@@ -95,7 +107,6 @@ export default async function(userMessage: string){
   
   return result;
 }
-
 
 
 
