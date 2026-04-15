@@ -1,6 +1,5 @@
 import express from 'express'
 import useGraph, { streamGraph } from './services/graph.ai.service.js'
-import cors from 'cors'
 
 const app = express()
 const allowedOrigins = [
@@ -11,24 +10,31 @@ const allowedOrigins = [
 
 app.use(express.json())
 
-const corsOrigin = (
-  origin: string | undefined,
-  callback: (error: Error | null, allow?: boolean) => void,
-) => {
-  const requestOrigin = typeof origin === 'string' ? origin : undefined
+app.use((req, res, next) => {
+  const origin = req.headers.origin
 
-  if (!requestOrigin || allowedOrigins.includes(requestOrigin)) {
-    callback(null, true)
+  if (!origin || allowedOrigins.includes(origin)) {
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin)
+    }
+    res.setHeader('Vary', 'Origin')
+    res.setHeader('Access-Control-Allow-Credentials', 'true')
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+
+    if (req.method === 'OPTIONS') {
+      res.sendStatus(204)
+      return
+    }
+
+    next()
     return
   }
 
-  callback(new Error('Not allowed by CORS'))
-}
-
-app.use(cors({
-  origin: corsOrigin,
-  credentials: true,
-}))
+  res.status(403).json({
+    message: 'Not allowed by CORS',
+  })
+})
 
 app.get('/', (req, res) => {
   res.status(200).json({
