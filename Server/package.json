@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "npm --prefix ../Client run build",
+    "build": "echo \"No build step required for Vercel backend\"",
     "build:client": "npm --prefix ../Client run build",
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx watch server.ts",

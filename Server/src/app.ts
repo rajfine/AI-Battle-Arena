@@ -1,21 +1,34 @@
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import express from 'express'
 import useGraph, { streamGraph } from './services/graph.ai.service.js'
 import cors from 'cors'
 
 const app = express()
-const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:5174'
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-const clientDistPath = path.resolve(__dirname, '../dist/client')
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
+  'http://localhost:5174',
+].filter(Boolean)
 
 app.use(express.json())
 
 app.use(cors({
-  origin: allowedOrigin,
-  credentials: true, // Allow cookies to be sent with requests
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true)
+      return
+    }
+
+    callback(new Error('Not allowed by CORS'))
+  },
+  credentials: true,
 }))
+
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'AI Battle Arena backend is running',
+  })
+})
 
 app.get('/health',(req,res)=>{
   res.status(200).json({
@@ -32,8 +45,7 @@ app.post("/invoke", async (req, res)=>{
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
-  // Flush headers immediately if possible
-  res.flushHeaders();
+  res.flushHeaders?.();
   
   try {
     const { input } = req.body;
@@ -65,12 +77,6 @@ app.post("/invoke", async (req, res)=>{
     })}\n\n`);
     res.end();
   }
-})
-
-app.use(express.static(clientDistPath))
-
-app.get(/^(?!\/(health|usegraph|invoke)$).*/, (req, res) => {
-  res.sendFile(path.join(clientDistPath, 'index.html'))
 })
 
 export default app
