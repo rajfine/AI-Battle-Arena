@@ -9,7 +9,7 @@ import { useBattleContext } from '../context/BattleContext'
 import './ArenaPage.css'
 import axios from 'axios'
 
-const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '')
+const apiUrl = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '')
 
 const ArenaPage = () => {
     const { model1, model2, sessions, setSessions, activeSessionId, setActiveSessionId } = useBattleContext()

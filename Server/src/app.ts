@@ -1,9 +1,14 @@
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import express from 'express'
 import useGraph, { streamGraph } from './services/graph.ai.service.js'
 import cors from 'cors'
 
 const app = express()
 const allowedOrigin = process.env.FRONTEND_URL || 'http://localhost:5174'
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const clientDistPath = path.resolve(__dirname, '../dist/client')
 
 app.use(express.json())
 
@@ -62,5 +67,10 @@ app.post("/invoke", async (req, res)=>{
   }
 })
 
+app.use(express.static(clientDistPath))
+
+app.get(/^(?!\/(health|usegraph|invoke)$).*/, (req, res) => {
+  res.sendFile(path.join(clientDistPath, 'index.html'))
+})
 
 export default app
